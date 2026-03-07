@@ -1,0 +1,13 @@
+graph:
+  id: test
+  description: Dynamic tree split of long text into chunks for parallel summarization.
+  log_level: DEBUG
+  is_majority_voting: false
+  nodes: []
+  edges: []
+  memory: []
+  initial_instruction: ''
+  start: []
+  end: []
+version: 0.0.0
+vars: {}
