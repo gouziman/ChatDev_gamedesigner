@@ -1,0 +1,28 @@
+graph:
+  id: test
+  description: ''
+  log_level: DEBUG
+  is_majority_voting: false
+  nodes:
+    - id: test
+      type: agent
+      config:
+        name: GLM-4.7-FlashX
+        provider: openai
+        role: 你是一个人工智能助手，简要介绍人工智能的发展历程
+        base_url: ${BASE_URL}
+        api_key: ${API_KEY}
+        params: {}
+        tooling: []
+        thinking: null
+        memories: []
+        retry: null
+      description: ''
+      context_window: 0
+      log_output: true
+  edges: []
+  memory: []
+  initial_instruction: ''
+  start:
+    - test
+  end: []

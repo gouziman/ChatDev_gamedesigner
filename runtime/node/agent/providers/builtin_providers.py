@@ -11,15 +11,6 @@ ProviderRegistry.register(
     summary="OpenAI models via the official OpenAI SDK (responses API)",
 )
 
-from runtime.node.agent.providers.doubao_provider import DoubaoProvider
-
-ProviderRegistry.register(
-    "doubao",
-    DoubaoProvider,
-    label="Doubao",
-    summary="ByteDance Doubao (豆包) models via OpenAI-compatible API",
-)
-
 try:
     from runtime.node.agent.providers.gemini_provider import GeminiProvider
 except ImportError:

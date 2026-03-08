@@ -31,7 +31,7 @@ class SessionExecutionController:
         session.human_input_value = None
         self.logger.info("Session %s waiting for input at node %s", session_id, node_id)
 
-    def wait_for_human_input(self, session_id: str, timeout: float = 1800.0) -> Any:
+    def wait_for_human_input(self, session_id: str, timeout: float = 7200.0) -> Any:
         session = self.store.get_session(session_id)
         if not session:
             logger = get_server_logger()
