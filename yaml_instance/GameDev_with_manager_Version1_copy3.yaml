@@ -1,0 +1,330 @@
+graph:
+  id: pygame_game_factory_streamlined
+  description: Streamlined two-phase workflow to generate cool, playable Pygame games with visual polish.
+  log_level: INFO
+  is_majority_voting: false
+  nodes:
+    - id: Final_Game_Executor
+      type: python
+      config:
+        interpreter: C:\ChatDev-main\ChatDev-main\.venv\Scripts\python.exe
+        args: []
+        env: {}
+        timeout_seconds: 120
+        encoding: utf-8
+      description: ''
+      context_window: 0
+      log_output: true
+    - id: Polish_Refinement
+      type: agent
+      config:
+        name: glm-4.7
+        provider: openai
+        role: |-
+          You are a GAME IMPROVEMENT SPECIALIST.
+          Fix specific issues identified by QA_Agent without breaking existing functionality.
+
+          PROCESS:
+          1. Read QA feedback (lists specific issues)
+
+          2. Read the COMPLETE game.py file:
+             - Call `read_text_file_snippet(path="game.py", offset=0, limit=25000)`
+             - If truncated=true, call again with offset=25000
+             - Store the complete code in memory
+
+          3. Fix ONLY the identified issues:
+             - If color issue: adjust palette
+             - If animation issue: add/improve effects
+             - If UI issue: redesign layout/text
+             - If functional issue: add missing feature
+             - Verify ALL other code remains unchanged
+
+          4. Call `save_file` with TWO REQUIRED ARGUMENTS:
+             save_file(
+               path="game.py",
+               content="<COMPLETE REFINED CODE AS STRING>"
+             )
+             
+             CRITICAL: The 'content' parameter MUST be the complete code.
+             DO NOT call save_file with empty arguments.
+             
+          5. Output: "Refinement complete. Issues addressed: [list]. Code saved."
+
+          IMPORTANT OUTPUT RULES:
+          - You MUST generate the complete refined Python code internally
+          - Pass this code as a STRING to save_file's 'content' parameter in the tool call
+          - DO NOT paste the code in your chat message text (to save tokens and avoid duplication)
+          - The code should ONLY appear inside the tool call's 'content' argument, NOT in your message
+
+          CONSTRAINTS:
+          - Make MINIMAL changes (only fix what QA mentioned)
+          - Do NOT rewrite the game
+          - Preserve all existing functionality
+          - Do NOT simplify or optimize unrelated code
+        base_url: ${BASE_URL}
+        api_key: ${API_KEY}
+        params: {}
+        tooling:
+          - type: function
+            config:
+              auto_load: true
+              tools:
+                - name: read_text_file_snippet
+                - name: save_file
+        thinking: null
+        memories: []
+        retry: null
+      description: ''
+      context_window: 10
+      log_output: true
+    - id: Game_Launcher
+      type: agent
+      config:
+        name: glm-4.7
+        provider: openai
+        role: |-
+          TASK: Read the complete game.py file and output it as a Python code block.
+
+          CRITICAL: The file may be 15-20KB. You MUST read it completely.
+
+          STEPS:
+          1. Call read_text_file_snippet(path="game.py", offset=0, limit=25000)
+          2. Check the response:
+             - If "truncated": true, make additional calls with offset=25000, 50000, etc.
+             - If "truncated": false, you have the complete file
+          3. Combine all parts if multiple calls were needed
+          4. Verify completeness: check that code ends with proper structure (not cut off mid-line)
+
+          OUTPUT FORMAT (STRICT):
+          ```python
+          [PASTE EVERY LINE OF THE COMPLETE CODE HERE]
+          ```
+
+          ABSOLUTE RULES:
+          - NO text before ```python
+          - NO text after closing ```
+          - NO "..." or "code omitted" placeholders
+          - NO summaries or explanations
+          - Output MUST be the complete, unmodified game.py content
+          - If file is incomplete, read more until you have it all
+        base_url: ${BASE_URL}
+        api_key: ${API_KEY}
+        params: {}
+        tooling:
+          - type: function
+            config:
+              auto_load: true
+              tools:
+                - name: read_text_file_snippet
+        thinking: null
+        memories: []
+        retry: null
+      description: ''
+      context_window: 6
+      log_output: true
+    - id: Bug_Fixer
+      type: agent
+      config:
+        name: glm-4.7
+        provider: openai
+        role: |-
+          You are a Bug Fixer. Fix ONLY the specific runtime error without rewriting the entire file.
+
+          CRITICAL FILE SAFETY RULES:
+          1. The game.py file is ~15-20KB and MUST be read completely
+          2. Use read_text_file_snippet(path="game.py", offset=0, limit=25000)
+          3. If truncated=true, read more with offset=25000 until you have the COMPLETE file
+          4. NEVER save an incomplete file - verify you have all the code before saving
+          5. Fix ONLY the error line(s) - keep everything else EXACTLY as is
+
+          PROCESS:
+          1. Read the error traceback from input (identifies line number and error type)
+
+          2. Read the COMPLETE game.py file:
+             - Call `read_text_file_snippet(path="game.py", offset=0, limit=25000)`
+             - If truncated=true, call again with offset=25000 to get the rest
+             - Store the COMPLETE code in memory
+
+          3. Verify file completeness:
+             - Check that code doesn't end mid-line or mid-function
+             - Verify main() function exists
+             - Verify if __name__ == "__main__" block exists
+             - If incomplete, read more until complete
+
+          4. Identify the EXACT line(s) causing the error and fix them:
+             - Make ONLY minimal changes to fix the specific error
+             - Keep all other code EXACTLY as is
+
+          5. Call `save_file` with TWO REQUIRED ARGUMENTS:
+             save_file(
+               path="game.py",
+               content="<COMPLETE FIXED CODE AS STRING>"
+             )
+             
+             CRITICAL: The 'content' parameter MUST be the complete fixed code.
+             DO NOT call save_file with empty arguments.
+             DO NOT save incomplete code.
+             
+          6. Output: "Bug fixed: [one-line description]. Code saved to game.py."
+
+          COMMON FIXES (minimal changes only):
+          - IndentationError: Fix spacing on the error line only
+          - Color tuple errors: Replace (*color, alpha) with proper SRCALPHA surface
+          - Division by zero: Add "if denominator != 0" check
+          - NameError: Add missing import or variable definition
+          - TypeError: Add int() conversion for coordinates
+
+          FORBIDDEN ACTIONS:
+          - DO NOT regenerate or rewrite code
+          - DO NOT add comments like "... rest of code ..."
+          - DO NOT simplify or optimize code
+          - DO NOT save if file is incomplete (< 10000 bytes is suspicious)
+
+          IMPORTANT OUTPUT RULES:
+          - You MUST generate the complete fixed Python code internally
+          - Pass this code as a STRING to save_file's 'content' parameter in the tool call
+          - DO NOT paste the code in your chat message text (to save tokens and avoid duplication)
+          - The code should ONLY appear inside the tool call's 'content' argument, NOT in your message
+          - Only output a brief fix description in your message, NO code blocks
+        base_url: ${BASE_URL}
+        api_key: ${API_KEY}
+        params: {}
+        tooling:
+          - type: function
+            config:
+              auto_load: true
+              tools:
+                - name: read_text_file_snippet
+                - name: save_file
+        thinking: null
+        memories: []
+        retry: null
+      description: ''
+      context_window: 6
+      log_output: true
+    - id: QA_Agent
+      type: human
+      config:
+        description: QA_agent
+      description: ''
+      context_window: 6
+      log_output: true
+    - id: '[]'
+      type: agent
+      config:
+        name: GLM-4.7
+        provider: openai
+        role: 原封不动地返回用户输入的全部内容，一字不差
+        base_url: ${BASE_URL}
+        api_key: ${API_KEY}
+        params: {}
+        tooling: []
+        thinking: null
+        memories: []
+        retry: null
+      description: ''
+      context_window: 0
+      log_output: true
+  edges:
+    - from: Polish_Refinement
+      to: Game_Launcher
+      trigger: true
+      carry_data: false
+    - from: Game_Launcher
+      to: Final_Game_Executor
+      trigger: true
+      carry_data: true
+    - from: Final_Game_Executor
+      to: Bug_Fixer
+      condition: code_fail
+      carry_data: true
+    - from: Bug_Fixer
+      to: Game_Launcher
+      trigger: true
+      carry_data: false
+    - from: QA_Agent
+      to: Polish_Refinement
+      trigger: true
+      condition:
+        type: function
+        config:
+          name: 'true'
+      carry_data: true
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+    - from: QA_Agent
+      to: Game_Launcher
+      trigger: true
+      condition:
+        type: keyword
+        config:
+          any:
+            - APPROVE
+      carry_data: false
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+    - from: '[]'
+      to: QA_Agent
+      trigger: true
+      condition:
+        type: function
+        config:
+          name: 'true'
+      carry_data: true
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+    - from: '[]'
+      to: Polish_Refinement
+      trigger: false
+      condition:
+        type: function
+        config:
+          name: 'true'
+      carry_data: true
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+    - from: '[]'
+      to: Game_Launcher
+      trigger: false
+      condition:
+        type: function
+        config:
+          name: 'true'
+      carry_data: true
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+    - from: '[]'
+      to: Bug_Fixer
+      trigger: false
+      condition:
+        type: function
+        config:
+          name: 'true'
+      carry_data: true
+      keep_message: false
+      clear_context: false
+      clear_kept_context: false
+      process: null
+      dynamic: null
+  initial_instruction: Describe a game idea you want to see come to life (e.g., 'A space shooter where you dodge asteroids', 'A rhythm game with falling notes', 'Snake but with gravity'). The system w[...]
+  start:
+    - '[]'
+  end:
+    - Final_Game_Executor
+version: 1.0.0
+vars: {}

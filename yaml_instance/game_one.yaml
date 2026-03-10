@@ -1,0 +1,11 @@
+graph:
+  id: game_one
+  description: ''
+  log_level: DEBUG
+  is_majority_voting: false
+  nodes: []
+  edges: []
+  memory: []
+  initial_instruction: ''
+  start: []
+  end: []
